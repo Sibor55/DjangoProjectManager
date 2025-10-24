@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<h1>Мои проекты и задачи</h1>
+
+<h2>Проекты</h2>
+{% if user_projects %}
+    <ul>
+    {% for project in user_projects %}
+        <li><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>У вас пока нет проектов</p>
+{% endif %}
+
+<h2>Задачи</h2>
+{% if user_tasks %}
+    <ul>
+    {% for task in user_tasks %}
+        <li>{{ task.title }} ({{ task.project.name }})</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>У вас пока нет задач</p>
+{% endif %}
+{% endblock %}

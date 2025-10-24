@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои проекты{% endblock %}
+
+{% block content %}
+<h1>Мои проекты</h1>
+{% if project_list %}
+    <ul>
+    {% for project in project_list %}
+        <li><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>У вас пока нет проектов</p>
+{% endif %}
+<a href="{% url 'project_create' %}">Создать новый проект</a>
+{% endblock %}
