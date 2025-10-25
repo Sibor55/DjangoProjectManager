@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Редактирование проекта: {{ object.name }}</h2>
+    
+    <!-- Основная форма проекта -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Основная информация</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Название проекта</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-danger">
+                            {{ form.name.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Описание</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger">
+                            {{ form.description.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Форма смены владельца -->
+                <div class="mt-4 border-top pt-3">
+                    <h6>Смена владельца проекта</h6>
+                    <p><strong>Текущий владелец:</strong> {{ current_owner.username }}</p>
+                    
+                    <div class="mb-3">
+                        <label for="{{ owner_form.new_owner.id_for_label }}" class="form-label">Новый владелец</label>
+                        {{ owner_form.new_owner }}
+                        {% if owner_form.new_owner.errors %}
+                            <div class="text-danger">
+                                {{ owner_form.new_owner.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Кнопки сохранения -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                    <a href="{% url 'project_detail' object.pk %}" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Управление участниками -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Участники проекта</h5>
+        </div>
+        <div class="card-body">
+            {% if members %}
+            <form method="post">
+                {% csrf_token %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>Роль</th>
+                            <th>Дата присоединения</th>
+                            <th>Удалить</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                        <tr>
+                            <td>
+                                {{ member.user.username }}
+                                {% if member.role == 'owner' %}
+                                <span class="badge bg-primary">Владелец</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ member.get_role_display }}</td>
+                            <td>{{ member.joined_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {% if member.role != 'owner' and member.user != user %}
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           class="form-check-input"
+                                           name="remove_members" 
+                                           value="{{ member.id }}"
+                                           id="remove_{{ member.id }}">
+                                    <label class="form-check-label" for="remove_{{ member.id }}">Удалить</label>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-warning">Удалить отмеченных участников</button>
+            </form>
+            {% else %}
+            <p class="text-muted">В проекте пока нет других участников</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

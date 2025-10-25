@@ -11,12 +11,6 @@ class Project(models.Model):
         max_length=100,
     )
     description = models.TextField()
-    owner = models.ForeignKey(
-        get_user_model(),
-        on_delete=models.CASCADE,
-        related_name="owned_projects",
-        verbose_name="Project Owner",
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -34,10 +28,13 @@ class Project(models.Model):
             raise ValidationError(
                 {"name": "Projects name must be at least 2 characters long"}
             )
-
+    def get_owner(self):
+        owner_member = self.members.filter(role='owner').first()
+        return owner_member.user if owner_member else None
 
 class ProjectMember(models.Model):
     ROLES = [
+        ("owner", "Owner"),
         ("admin", "Administrator"),
         ("member", "Member"),
         ("viewer", "Viewer"),
@@ -54,13 +51,9 @@ class ProjectMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name} ({self.role})"
+    
 
-    def clean(self):
-        """Владелец не как участник"""
-        if self.user == self.project.owner:
-            raise ValidationError(
-                "Project ownwer is automatically a member and cannot be added"
-            )
+
 
 
 class Status(models.Model):
