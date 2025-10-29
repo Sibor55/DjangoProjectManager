@@ -1,5 +1,6 @@
 # from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404
+from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView,
     DetailView,
@@ -13,7 +14,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
-# from django.db.models import Q # Если нужны будут обращения к разным моделям использовать Q
+from django.db.models import Q # Если нужны будут обращения к разным моделям использовать Q
 
 from .models import Project, ProjectMember, Task
 from .forms import ProjectChangeOwnerForm
@@ -71,18 +72,9 @@ class DashboardView(LoginRequiredMixin, ListView):
         return context
 
 
-class ProjectListView(LoginRequiredMixin, ListView):
-    """Представления для отображения списка проектов"""
-    model = Project
-    template_name = "taskmanager/project_list.html"
-    login_url = "login"
-
-    def get_queryset(self):
-        return Project.objects.filter(members__user=self.request.user).distinct()
-
-
 class ProjectCreateView(LoginRequiredMixin, CreateView):
     """Представления для создание проекта"""
+
     model = Project
     fields = ["name", "description"]
     template_name = "taskmanager/project_form.html"
@@ -101,8 +93,20 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class ProjectListView(LoginRequiredMixin, ListView):
+    """Представления для отображения списка проектов"""
+
+    model = Project
+    template_name = "taskmanager/project_list.html"
+    login_url = "login"
+
+    def get_queryset(self):
+        return Project.objects.filter(members__user=self.request.user).distinct()
+
+
 class ProjectDetailView(LoginRequiredMixin, DetailView):
     """Представление для просмотра проекта"""
+
     model = Project
     template_name = "taskmanager/project_detail.html"
 
@@ -111,7 +115,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
 
 class ProjectUpdateView(LoginRequiredMixin, UpdateView):
-    """Представление для просмотра проекта"""
+    """Представление для редактирования проекта"""
+
     model = Project
     fields = ["name", "description"]
     template_name = "taskmanager/project_update_form.html"
@@ -123,7 +128,7 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
 
-        if not self.is_owner(project):
+        if not self._user_is_project_owner(project):
             messages.error(self.request, "Only owner can edit this project")
             return context
 
@@ -146,7 +151,7 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
 
         return context
 
-    def is_owner(self, project):
+    def _user_is_project_owner(self, project):
         return project.members.filter(user=self.request.user, role="owner").exists()
 
     def form_valid(self, form):
@@ -154,12 +159,12 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
 
         new_owner_id = self.request.POST.get("new_owner")
         if new_owner_id:
-            self.change_owner(project, new_owner_id)
+            self._transfer_ownership(project, new_owner_id)
 
         messages.success(self.request, "Project updated")
         return super().form_valid(form)
 
-    def change_owner(self, project, new_owner_id):
+    def _transfer_ownership(self, project, new_owner_id):
         try:
             new_owner_member = ProjectMember.objects.get(
                 id=new_owner_id, project=project
@@ -181,3 +186,51 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
             )
         except ProjectMember.DoesNotExist:
             messages.error(self.request, "Project member does not exist")
+
+
+class TaskCreateView(LoginRequiredMixin, CreateView):
+    """Представления для создания задачи"""
+
+    model = Task
+    fields = ["title", "description", "priority", "due_date"]
+    template_name = "taskmanager/task_form.html"
+
+    def get_success_url(self):
+        return reverse_lazy("task_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        form.instance.creator = self.request.user
+        
+        project_id = self.kwargs['project_id']
+        project = get_object_or_404(Project, id=project_id)
+        form.instance.project = project
+
+        return super().form_valid(form)
+    
+class TaskListView(LoginRequiredMixin, ListView):
+    """Представление для отображения списка задач"""
+    model = Task
+    template_name = "taskmanager/task_list.html"
+    login_url = "login"
+    
+    def get_queryset(self):
+        return Task.objects.filter(
+            Q(creator=self.request.user) | Q(assignees__user = self.request.user)
+        ).distinct()
+
+
+class TaskDetailView(LoginRequiredMixin,DetailView):
+    """Представления для отображения задачи"""
+    model = Task
+    template_name = "taskmanager/task_detail.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context[""] = 
+        return context
+
+class TaskUpdateView(LoginRequiredMixin,UpdateView):
+    """Представления для редактирования задачи"""
+    model = Task
+    fields = ["title", "description", "priority", "due_date"]
+    # TODO Доделать и отрефакторить 

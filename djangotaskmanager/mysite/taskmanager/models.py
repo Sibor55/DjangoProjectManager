@@ -28,9 +28,11 @@ class Project(models.Model):
             raise ValidationError(
                 {"name": "Projects name must be at least 2 characters long"}
             )
+
     def get_owner(self):
-        owner_member = self.members.filter(role='owner').first()
+        owner_member = self.members.filter(role="owner").first()
         return owner_member.user if owner_member else None
+
 
 class ProjectMember(models.Model):
     ROLES = [
@@ -39,7 +41,9 @@ class ProjectMember(models.Model):
         ("member", "Member"),
         ("viewer", "Viewer"),
     ]
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members')
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name="members"
+    )
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLES)
     joined_at = models.DateTimeField(auto_now_add=True)
@@ -51,9 +55,6 @@ class ProjectMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name} ({self.role})"
-    
-
-
 
 
 class Status(models.Model):
