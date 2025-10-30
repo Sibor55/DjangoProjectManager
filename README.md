@@ -2,7 +2,7 @@
 
 A Django-based project management app for teams and tasks.
 
-## stack
+## Stack
 - Django 5.2.7
 - PostgreSQL
 - Environment variables with python-decouple
